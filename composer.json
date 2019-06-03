@@ -1,0 +1,29 @@
+{
+    "name": "onlymaker/pisces",
+    "authors": [
+        {
+            "name": "jibo",
+            "email": "jibo@outlook.com"
+        }
+    ],
+    "license": "Unlicense",
+    "require": {
+        "ext-json": "^1.5",
+        "bcosca/fatfree": "dev-3.6.5-syncxplus",
+        "php-amqplib/php-amqplib": "^2.8"
+    },
+    "require-dev": {
+        "ramsey/uuid": "^3.8",
+        "phpunit/phpunit": "^7.0"
+    },
+    "repositories": {
+        "0": {
+            "type": "vcs",
+            "url": "https://github.com/syncxplus/fatfree"
+        },
+        "packagist": {
+            "type": "composer",
+            "url": "https://packagist.phpcomposer.com"
+        }
+    }
+}

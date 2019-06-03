@@ -1,0 +1,4 @@
+/runtime
+/vendor
+/composer.lock
+/cfg/debug.ini
