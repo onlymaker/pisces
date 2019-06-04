@@ -1,7 +1,6 @@
 /.git
 /.idea
 /runtime
-/vendor
 /.gitignore
 /composer.lock
 /Dockerfile
