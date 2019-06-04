@@ -1,5 +1,6 @@
 {
     "name": "onlymaker/pisces",
+    "version": "0.0.1",
     "authors": [
         {
             "name": "jibo",
@@ -10,7 +11,8 @@
     "require": {
         "ext-json": "^1.5",
         "bcosca/fatfree": "dev-3.6.5-syncxplus",
-        "php-amqplib/php-amqplib": "^2.8"
+        "php-amqplib/php-amqplib": "^2.8",
+        "phpoffice/phpspreadsheet": "^1.5"
     },
     "require-dev": {
         "ramsey/uuid": "^3.8",

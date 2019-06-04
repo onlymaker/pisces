@@ -4,6 +4,7 @@ use app\Rabbit;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Connection\AbstractConnection;
 use PhpAmqpLib\Message\AMQPMessage;
+use service\StockUp;
 
 define('ROOT', __DIR__);
 
@@ -50,11 +51,15 @@ function messageHandler(AMQPMessage $message)
     $deliveryInfo = $message->delivery_info;
     $deliveryTag = $deliveryInfo['delivery_tag'];
     logging("receiving message $deliveryTag: $body");
-    $data = json_decode($body);
+    $data = json_decode($body, true);
     if (json_last_error()) {
         logging('json_decode error: ' . json_last_error_msg());
     } else {
         logging($data);
+        if ($data['task'] == 'stockUp') {
+            $stockUp = new StockUp();
+            $stockUp->exec($data['name'], explode(',', $data['data']));
+        }
     }
     $deliveryInfo['channel']->basic_ack($deliveryTag);
 }
