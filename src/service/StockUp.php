@@ -94,6 +94,7 @@ class StockUp
 
         $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
         $writer->save($file);
+        chown($file, 'www-data');
         return true;
     }
 
