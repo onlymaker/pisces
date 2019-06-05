@@ -8,7 +8,7 @@ define('ROOT', __DIR__);
 
 require_once ROOT . '/vendor/autoload.php';
 
-function logging($log)
+function writeLog($log)
 {
     if (is_scalar($log)) {
         echo $log, PHP_EOL;
@@ -21,7 +21,7 @@ function logging($log)
 
 function shutdown()
 {
-    logging('Script shutting down ...');
+    writeLog('Script shutting down ...');
     Rabbit::disconnect();
     sleep(10);
 }
@@ -41,12 +41,12 @@ Rabbit::consume(function (AMQPMessage $message) {
     $body = $message->body;
     $deliveryInfo = $message->delivery_info;
     $deliveryTag = $deliveryInfo['delivery_tag'];
-    logging("Receiving message $deliveryTag: $body");
+    writeLog("Receiving message $deliveryTag: $body");
     $data = json_decode($body, true);
     if (json_last_error()) {
-        logging('json_decode error: ' . json_last_error_msg());
+        writeLog('json_decode error: ' . json_last_error_msg());
     } else {
-        logging($data);
+        writeLog($data);
         if ($data['task'] == 'stockUp') {
             $stockUp = new StockUp();
             $stockUp->exec($data['name'], explode(',', $data['data']));
@@ -55,7 +55,7 @@ Rabbit::consume(function (AMQPMessage $message) {
     $deliveryInfo['channel']->basic_ack($deliveryTag);
 });
 
-logging("Start and register consumer ok");
+writeLog("Start and register consumer ok");
 
 $channel = Rabbit::getChannel();
 while (count($channel->callbacks)) {

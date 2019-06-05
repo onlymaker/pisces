@@ -18,11 +18,11 @@ class StockUp
             $data[] = $this->calcSku($sku);
         }
         if ($this->save($file, $data)) {
-            logging("Finish: $file");
+            writeLog("Finish: $file");
         } else {
-            logging("Error： $file");
+            writeLog("Error: $file");
             unlink($file);
-            logging($skus);
+            writeLog($skus);
         }
     }
 
