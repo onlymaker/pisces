@@ -80,7 +80,7 @@ class StockUp
                             $sheet->setCellValue('A' . ($row + 1), $size);
                             foreach ($keys as $k => $v) {
                                 $column = chr(ord('A') + ($k + 1));
-                                $sheet->setCellValue($column . $row, $v);
+                                $sheet->setCellValue($column . $row, $v == 'stock' ? 'FBA Inventory' : $v);
                                 $sheet->setCellValue($column . ($row + 1), $sizeStats[$v]);
                             }
                             $row += 2;
