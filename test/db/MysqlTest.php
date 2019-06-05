@@ -1,4 +1,5 @@
 <?php
+
 namespace test\db;
 
 use db\Mysql;

@@ -1,22 +1,12 @@
 <?php
 
 use app\Rabbit;
-use PhpAmqpLib\Channel\AMQPChannel;
-use PhpAmqpLib\Connection\AbstractConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 use service\StockUp;
 
 define('ROOT', __DIR__);
 
-require_once ROOT. '/vendor/autoload.php';
-
-call_user_func(function (Base $f3) {
-    $f3->mset([
-        'AUTOLOAD' => ROOT . '/src/',
-        'LOGS' => ROOT . '/runtime/logs/',
-    ]);
-    $f3->config(ROOT . '/cfg/system.ini,' . ROOT . '/cfg/debug.ini');
-}, Base::instance());
+require_once ROOT . '/vendor/autoload.php';
 
 function logging($log)
 {
@@ -29,28 +19,29 @@ function logging($log)
     }
 }
 
-set_exception_handler(function (Throwable $t) {
-    Rabbit::disconnect();
-    logging($t);
-});
-
-$channel = Rabbit::getChannel();
-$connection = Rabbit::getConnection();
-
-function shutdown(AMQPChannel $channel, AbstractConnection $connection)
+function shutdown()
 {
-    $channel->close();
-    $connection->close();
+    logging('Script shutting down ...');
+    Rabbit::disconnect();
+    sleep(10);
 }
 
-register_shutdown_function('shutdown', $channel, $connection);
 
-function messageHandler(AMQPMessage $message)
-{
+$f3 = Base::instance();
+$f3->mset([
+    'AUTOLOAD' => ROOT . '/src/',
+    'LOGS' => ROOT . '/runtime/logs/',
+    'HALT' => false,
+    'ONERROR' => 'logging',
+    'UNLOAD' => 'shutdown',
+]);
+$f3->config(ROOT . '/cfg/system.ini,' . ROOT . '/cfg/debug.ini');
+
+Rabbit::consume(function (AMQPMessage $message) {
     $body = $message->body;
     $deliveryInfo = $message->delivery_info;
     $deliveryTag = $deliveryInfo['delivery_tag'];
-    logging("receiving message $deliveryTag: $body");
+    logging("Receiving message $deliveryTag: $body");
     $data = json_decode($body, true);
     if (json_last_error()) {
         logging('json_decode error: ' . json_last_error_msg());
@@ -62,16 +53,11 @@ function messageHandler(AMQPMessage $message)
         }
     }
     $deliveryInfo['channel']->basic_ack($deliveryTag);
-}
+});
 
-Rabbit::consume('queue', 'tag', 'messageHandler');
+logging("Start and register consumer ok");
 
-logging("start and register consumer ok");
-
+$channel = Rabbit::getChannel();
 while (count($channel->callbacks)) {
-    try {
-        $channel->wait();
-    } catch (ErrorException $e) {
-        logging($e);
-    }
+    $channel->wait();
 }

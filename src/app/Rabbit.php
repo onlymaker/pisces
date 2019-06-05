@@ -44,22 +44,22 @@ class Rabbit
         $channel->basic_publish(new AMQPMessage($message), Rabbit::exchange, Rabbit::routeKey);
     }
 
-    static function consume(string $queue, string $tag, callable $callback)
+    static function consume(callable $callback)
     {
         // declare a queue to consume from
         $channel = self::getChannel();
         $channel->exchange_declare(Rabbit::exchange, self::type, false, false, false);
-        $channel->queue_declare($queue, false, false, true, false);
-        $channel->queue_bind($queue, Rabbit::exchange, Rabbit::routeKey);
-        $channel->basic_consume($queue, $tag, false, false, true, false, $callback);
+        $channel->queue_declare('', false, false, true, false);
+        $channel->queue_bind('', Rabbit::exchange, Rabbit::routeKey);
+        $channel->basic_consume('', '', false, false, true, false, $callback);
     }
 
     static function disconnect()
     {
-        if (!empty(self::$channel)) {
+        if (self::$channel) {
             self::$channel->close();
         }
-        if (!empty(self::$connection)) {
+        if (self::$connection) {
             self::$connection->close();
         }
     }
