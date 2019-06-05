@@ -14,6 +14,7 @@ class StockUp
     function exec(string $file, array $skus)
     {
         $data = [];
+        $skus = array_unique($skus);
         foreach ($skus as $sku) {
             $data[] = $this->calcSku($sku);
         }
