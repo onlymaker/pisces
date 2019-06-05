@@ -6,6 +6,7 @@ use DB\Jig;
 use db\Mysql;
 use db\SqlMapper;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Settings;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 
@@ -33,6 +34,9 @@ class StockUp
         if (!is_dir($dir)) {
             mkdir($dir, 0755, true);
         }
+
+        \Base::instance()->set('CACHE', true);
+        Settings::setCache(new SpreadSheetCache());
 
         $spreadsheet = new Spreadsheet();
 

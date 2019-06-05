@@ -32,7 +32,7 @@ $f3->mset([
     'AUTOLOAD' => ROOT . '/src/',
     'LOGS' => ROOT . '/runtime/logs/',
     'HALT' => false,
-    'ONERROR' => 'logging',
+    'ONERROR' => 'writeLog',
     'UNLOAD' => 'shutdown',
 ]);
 $f3->config(ROOT . '/cfg/system.ini,' . ROOT . '/cfg/debug.ini');
