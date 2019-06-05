@@ -170,7 +170,11 @@ class StockUp
             $query = $db->exec("select * from volume_delivery $filter");
             foreach ($query as $item) {
                 if (isset($data[$sku][$key][$item['size']])) {
-                    $data[$sku][$key][$item['size']][$item['arrive_date']] = $item['quantity'];
+                    if (isset($data[$sku][$key][$item['size']][$item['arrive_date']])) {
+                        $data[$sku][$key][$item['size']][$item['arrive_date']] += $item['quantity'];
+                    } else {
+                        $data[$sku][$key][$item['size']][$item['arrive_date']] = $item['quantity'];
+                    }
                 } else {
                     $data[$sku][$key][$item['size']] = $this->paddingData($arrivalPoints, $item['arrive_date'], $item['quantity']);
                 }
