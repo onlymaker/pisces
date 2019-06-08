@@ -51,51 +51,62 @@ class StockUp
 
         $sheet = $spreadsheet->setActiveSheetIndex(0)->setTitle(date('Y-m-d'));
         $row = 1;
+        $sheet->setCellValue('B' . $row, 'order');
+        $sheet->setCellValue('C' . $row, 'inventory');
+        $sheet->setCellValue('D' . $row, 'inbound');
+        $sheet->setCellValue('E' . $row, 'factory');
+        $sheet->setCellValue('F' . $row, 'requirement');
+        $row++;
 
         foreach ($data as $item) {
             if ($item) {
-                // write sku and thumb
                 $thumb = $item['image'];
                 unset($item['image']);
-                $sku = array_keys($item)[0];
-                $sheet->setCellValue('A' . $row, $sku)
-                    ->getRowDimension($row)
-                    ->setRowHeight(\PhpOffice\PhpSpreadsheet\Shared\Drawing::pixelsToPoints(60));
                 $drawing = new Drawing();
                 $drawing->setPath($this->getImage($thumb))
                     ->setWorksheet($sheet)
-                    ->setCoordinates('B' . $row)
+                    ->setCoordinates('A' . $row)
                     ->setOffsetX(2)
                     ->setOffsetY(2);
+                $sku = array_keys($item)[0];
+                $sheet->setCellValue('B' . $row, $sku)
+                    ->getRowDimension($row)
+                    ->setRowHeight(\PhpOffice\PhpSpreadsheet\Shared\Drawing::pixelsToPoints(60));
                 $row++;
-                // write data
                 $stats = $item[$sku];
                 foreach ($stats as $region) {
-                    $prefix = '';
                     foreach ($region as $size => $sizeStats) {
-                        $keys = array_keys($sizeStats);
-                        usort($keys, ['service\StockUp', 'compare']);
-                        if ($prefix != substr($size, 0, 2)) {
-                            $prefix = substr($size, 0, 2);
-                            $sheet->setCellValue('A' . ($row + 1), $size);
-                            foreach ($keys as $k => $v) {
-                                $column = chr(ord('A') + ($k + 1));
-                                $sheet->setCellValue($column . $row, $v == 'stock' ? 'FBA Inventory' : $v);
-                                $sheet->setCellValue($column . ($row + 1), $sizeStats[$v]);
-                            }
-                            $row += 2;
-                        } else {
-                            $sheet->setCellValue('A' . $row, $size);
-                            foreach ($keys as $k => $v) {
-                                $column = chr(ord('A') + ($k + 1));
-                                $sheet->setCellValue($column . $row, $sizeStats[$v]);
-                            }
-                            $row++;
+                        $sheet->setCellValue('A' . $row, $size);
+                        // order
+                        $sheet->setCellValue('B' . $row, $sizeStats['order']['quantity']);
+                        // inventory
+                        $sheet->setCellValue('C' . $row, $content = $sizeStats['inventory']);
+                        // inbound
+                        $content = '';
+                        foreach ($sizeStats['inbound'] as $inbound) {
+                            $content .= "{$inbound['quantity']} ({$inbound['name']})\n";
                         }
+                        $sheet->setCellValue('D' . $row, $content);
+                        $sheet->getCell('D' . $row)->getStyle()->getAlignment()->setWrapText(true);
+                        // factory
+                        $content = '';
+                        foreach ($sizeStats['factory'] as $factory) {
+                            $content .= "{$factory['quantity']} ({$factory['name']})\n";
+                        }
+                        $sheet->setCellValue('E' . $row, $content);
+                        $sheet->getCell('E' . $row)->getStyle()->getAlignment()->setWrapText(true);
+                        // requirement
+                        $sheet->setCellValue('F' . $row, $sizeStats['requirement']);
+                        $row++;
                     }
                 }
             }
         }
+        $sheet->getColumnDimension('B')->setAutoSize(true);
+        $sheet->getColumnDimension('C')->setAutoSize(true);
+        $sheet->getColumnDimension('D')->setAutoSize(true);
+        $sheet->getColumnDimension('E')->setAutoSize(true);
+        $sheet->getColumnDimension('F')->setAutoSize(true);
 
         $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
         $writer->save($file);
@@ -105,131 +116,104 @@ class StockUp
 
     function calcSku($sku)
     {
+        $data = [];
         $prototype = new SqlMapper('prototype');
         $prototype->load(['model=?', $sku]);
         if (!$prototype->dry()) {
-            $data = [
-                $sku => [],
-                'image' => explode(',', $prototype['images'])[0] . '?imageView2/0/w/50',
-            ];
-            $markets = ['US', 'DE', 'UK'];
-            foreach ($markets as $market) {
-                $this->calcSkuByMarket($sku, $market, $data);
+            $data = $this->getAmazonStats($sku);
+            $data['image'] = explode(',', $prototype['images'])[0] . '?imageView2/0/w/50';
+            $sql = <<<SQL
+select volume_serial, volume_type,
+  us_size, us_quantity,
+  eu_size, de_quantity,
+  uk_size, uk_quantity,
+  factory, create_time
+from volume_order
+where sku = '$sku'
+  and status = 0
+order by create_time
+SQL;
+            $query = Mysql::instance()->get()->exec($sql);
+            foreach ($query as $item) {
+                $factory = $item['factory'];
+                $serial = $item['volume_serial'];
+                $type = $item['volume_type'];
+                if ($item['us_quantity'] > 0) {
+                    $this->setFactoryStats($sku, $item['us_size'], $item['us_quantity'], $factory, $serial, $type, $data);
+                }
+                if ($item['uk_quantity'] > 0) {
+                    $this->setFactoryStats($sku, $item['eu_size'], $item['de_quantity'], $factory, $serial, $type, $data);
+                }
+                if ($item['uk_quantity'] > 0) {
+                    $this->setFactoryStats($sku, $item['uk_size'], $item['uk_quantity'], $factory, $serial, $type, $data);
+                }
             }
-        } else {
-            $data = [];
+            foreach ($data[$sku] as &$region) {
+                foreach ($region as &$stats) {
+                    if (!isset($stats['factory'])) {
+                        $stats['factory'] = [];
+                    }
+                    $requirement = $stats['requirement'];
+                    foreach ($stats['factory'] as $factoryStats) {
+                        $requirement -= $factoryStats['quantity'];
+                    }
+                    if ($requirement < 0) {
+                        $requirement = 0;
+                    }
+                    $stats['requirement'] = $requirement;
+                }
+            }
         }
         return $data;
     }
 
-    function calcSkuByMarket($sku, $market, &$data)
+    function getAmazonStats($sku)
     {
-        $db = Mysql::instance()->get();
-        $backwardDate = date('Y-m-d', strtotime('-90 days'));
-        $forwardDate = date('Y-m-d', strtotime('60 day'));
-        $query = $db->exec('select distinct arrive_date from volume_delivery where sku=? and destination=? and arrive_date between ? and ? order by arrive_date', [$sku, $market, $backwardDate, $forwardDate]);
-        $dates = $query ? array_column($query, 'arrive_date') : [];
-
-        $arrivalPoints = [];
-        foreach ($dates as $date) {
-            if (strtotime($date) < time()) {
-                $arrivalPoints[] = $date;
-            }
-        }
-        $futurePoints = array_diff($dates, $arrivalPoints);
-
         $jig = new Jig(ROOT . '/runtime/jig/');
         $cache = new Jig\Mapper($jig, 'report-' . date('Ymd'));
-        $cache->load(['@sku=? and @market=?', $sku, $market]);
+        $cache->load(['@sku=?', $sku]);
         if ($cache->dry()) {
             $options = [
                 'method' => 'POST',
                 'content' => http_build_query([
                     'sku' => $sku,
-                    'date' => implode(',', $arrivalPoints),
-                    'market' => $market,
                 ]),
             ];
             $response = \Web::instance()->request('https://asin.onlymaker.com/Report', $options);
             $cache['sku'] = $sku;
-            $cache['market'] = $market;
             $cache['data'] = $response['body'];
             $cache->save();
         }
-
-        $key = $market == 'DE' ? 'EU' : $market;
-
-        $data[$sku][$key] = json_decode($cache['data'], true)[$sku][$key];
-
-        if ($futurePoints) {
-            $filter = [];
-            foreach ($futurePoints as $i => $date) {
-                $filter[] = "'$date'";
-            }
-            $filter = "where sku='$sku' and destination='$market' and arrive_date in (" . implode(',', $filter) . ')';
-            $query = $db->exec("select * from volume_delivery $filter");
-            foreach ($query as $item) {
-                if (isset($data[$sku][$key][$item['size']])) {
-                    if (isset($data[$sku][$key][$item['size']][$item['arrive_date']])) {
-                        $data[$sku][$key][$item['size']][$item['arrive_date']] += $item['quantity'];
-                    } else {
-                        $data[$sku][$key][$item['size']][$item['arrive_date']] = $item['quantity'];
-                    }
-                } else {
-                    $data[$sku][$key][$item['size']] = $this->paddingData($arrivalPoints, $item['arrive_date'], $item['quantity']);
-                }
-            }
-
-            foreach ($data[$sku] as &$range) {
-                foreach ($range as &$stats) {
-                    foreach ($futurePoints as $date) {
-                        if (!isset($stats[$date])) {
-                            $stats[$date] = 0;
-                        }
-                    }
-                }
-            }
-        }
-
-        $futurePoints[] = $forwardDate;
-        foreach ($data[$sku] as &$range) {
-            foreach ($range as &$stats) {
-                $requirement = $stats['requirement'] ?? ceil($stats[90] / 3);
-                $delta = $requirement / 30;
-                $balance = 0;
-                $supply = $stats['stock'];
-                $supplyDate = date('Y-m-d');
-                foreach ($futurePoints as $date) {
-                    $result = $delta * (strtotime($date) - strtotime($supplyDate)) / 86400 - $supply;
-                    //ignore the gap (value > 0) between $supplyDate and $date
-                    if ($result < 0) {
-                        $balance += $result;
-                    }
-                    $supply = $stats[$date] ?? 0;
-                    $supplyDate = $date;
-                }
-                $stats['requirement'] = max(0, $requirement + $balance);
-            }
-        }
+        return json_decode($cache['data'], true);
     }
 
-    function paddingData($remoteFields, $date, $quantity)
+    function setFactoryStats($sku, $size, $quantity, $factory, $serial, $type, &$data)
     {
-        if (!$remoteFields) {
-            $data = [
-                7 => 0,
-                30 => 0,
-                60 => 0,
-                90 => 0,
-            ];
-        } else {
-            $data = array_flip($remoteFields);
-            foreach ($data as &$item) {
-                $item = 0;
+        $value = [
+            'name' => $serial,
+            'factory' => $factory,
+            'type' => $type,
+            'quantity' => $quantity
+        ];
+        $prefix = strtoupper(substr($size, 0, 2));
+        if (isset($data[$sku][$prefix])) {
+            if (isset($data[$sku][$prefix][$size])) {
+                if (isset($data[$sku][$prefix][$size]['factory'])) {
+                    $data[$sku][$prefix][$size]['factory'][] = $value;
+                } else {
+                    $data[$sku][$prefix][$size]['factory'] = [$value];
+                }
+            } else {
+                $data[$sku][$prefix][$size] = [
+                    'order' => ['name' => 'average', 'quantity' => 0],
+                    'inventory' => 0,
+                    'inbound' => [],
+                    'factory' => [$value],
+                ];
             }
+        } else {
+            writeLog("Warning: $sku with unknown size $size");
         }
-        $data[$date] = $quantity;
-        return $data;
     }
 
     function getImage($imageUrl)
