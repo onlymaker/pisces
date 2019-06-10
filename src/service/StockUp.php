@@ -163,6 +163,9 @@ SQL;
                     $stats['requirement'] = $requirement;
                 }
             }
+            writeLog("sku [$sku] calc success");
+        } else {
+            writeLog("sku [$sku] is not found");
         }
         return $data;
     }
