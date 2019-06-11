@@ -50,6 +50,10 @@ Rabbit::consume(function (AMQPMessage $message) {
         if ($data['task'] == 'stockUp') {
             $stockUp = new StockUp();
             $stockUp->exec($data['name'], explode(',', $data['data']));
+        } else if ($data['task'] == 'stockClear') {
+            $file = ROOT . '/runtime/jig/report-' . date('Ymd');
+            unlink($file);
+            writeLog("clear report cache $file");
         }
     }
     $deliveryInfo['channel']->basic_ack($deliveryTag);
