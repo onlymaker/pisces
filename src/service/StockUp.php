@@ -52,10 +52,11 @@ class StockUp
         $sheet = $spreadsheet->setActiveSheetIndex(0)->setTitle(date('Y-m-d'));
         $row = 1;
         $sheet->setCellValue('B' . $row, 'order');
-        $sheet->setCellValue('C' . $row, 'inventory');
-        $sheet->setCellValue('D' . $row, 'inbound');
-        $sheet->setCellValue('E' . $row, 'factory');
-        $sheet->setCellValue('F' . $row, 'requirement');
+        $sheet->setCellValue('C' . $row, 'latest');
+        $sheet->setCellValue('D' . $row, 'inventory');
+        $sheet->setCellValue('E' . $row, 'inbound');
+        $sheet->setCellValue('F' . $row, 'factory');
+        $sheet->setCellValue('G' . $row, 'requirement');
         $row++;
 
         foreach ($data as $item) {
@@ -79,24 +80,26 @@ class StockUp
                         $sheet->setCellValue('A' . $row, $size);
                         // order
                         $sheet->setCellValue('B' . $row, $sizeStats['order']['quantity']);
+                        // latest
+                        $sheet->setCellValue('C' . $row, $sizeStats['latest']);
                         // inventory
-                        $sheet->setCellValue('C' . $row, $content = $sizeStats['inventory']);
+                        $sheet->setCellValue('D' . $row, $content = $sizeStats['inventory']);
                         // inbound
                         $content = '';
                         foreach ($sizeStats['inbound'] as $inbound) {
                             $content .= "{$inbound['quantity']} ({$inbound['name']})\n";
                         }
-                        $sheet->setCellValue('D' . $row, $content);
-                        $sheet->getCell('D' . $row)->getStyle()->getAlignment()->setWrapText(true);
+                        $sheet->setCellValue('E' . $row, $content);
+                        $sheet->getCell('E' . $row)->getStyle()->getAlignment()->setWrapText(true);
                         // factory
                         $content = '';
                         foreach ($sizeStats['factory'] as $factory) {
                             $content .= "{$factory['quantity']} ({$factory['name']})\n";
                         }
-                        $sheet->setCellValue('E' . $row, $content);
-                        $sheet->getCell('E' . $row)->getStyle()->getAlignment()->setWrapText(true);
+                        $sheet->setCellValue('F' . $row, $content);
+                        $sheet->getCell('F' . $row)->getStyle()->getAlignment()->setWrapText(true);
                         // requirement
-                        $sheet->setCellValue('F' . $row, $sizeStats['requirement']);
+                        $sheet->setCellValue('G' . $row, $sizeStats['requirement']);
                         $row++;
                     }
                 }
@@ -107,6 +110,7 @@ class StockUp
         $sheet->getColumnDimension('D')->setAutoSize(true);
         $sheet->getColumnDimension('E')->setAutoSize(true);
         $sheet->getColumnDimension('F')->setAutoSize(true);
+        $sheet->getColumnDimension('G')->setAutoSize(true);
 
         $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
         $writer->save($file);
