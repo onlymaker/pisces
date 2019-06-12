@@ -183,11 +183,13 @@ SQL;
                 ]),
             ];
             $response = \Web::instance()->request('https://asin.onlymaker.com/Report', $options);
-            $cache['sku'] = $sku;
-            $cache['data'] = $response['body'];
-            $cache->save();
+            if ($response['headers'][0] == 'HTTP/1.1 200 OK') {
+                $cache['sku'] = $sku;
+                $cache['data'] = $response['body'];
+                $cache->save();
+            }
         }
-        return json_decode($cache['data'], true);
+        return $cache['data'] ? json_decode($cache['data'], true) : [$sku => []];
     }
 
     function setFactoryStats($sku, $size, $quantity, $factory, $serial, $type, &$data)

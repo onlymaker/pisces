@@ -52,7 +52,7 @@ Rabbit::consume(function (AMQPMessage $message) {
             $stockUp->exec($data['name'], explode(',', $data['data']));
         } else if ($data['task'] == 'stockClear') {
             $file = ROOT . '/runtime/jig/report-' . date('Ymd');
-            unlink($file);
+            @unlink($file);
             writeLog("clear report cache $file");
         }
     }
