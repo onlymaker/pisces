@@ -164,7 +164,11 @@ SQL;
                     if ($requirement < 0) {
                         $requirement = 0;
                     }
-                    $stats['requirement'] = $requirement;
+                    $stats['requirement'] = is_float($requirement) ? sprintf('%.2f', $requirement) : $requirement;
+                    $order = $stats['order']['quantity'];
+                    if (strpos($order, '.')) {
+                        $stats['order']['quantity'] = sprintf('%.2f', $order);
+                    }
                 }
             }
             writeLog("sku [$sku] calc success");
