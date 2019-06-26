@@ -197,7 +197,11 @@ SQL;
                 $cache->save();
             }
         }
-        return $cache['data'] ? json_decode($cache['data'], true) : [$sku => []];
+        /*
+         * bcosca/fatfree/lib/db/jig/mapper.php:77@e1ab70aa3949a2f9e6389e8bc19c39b8d95289a0
+         * Access mapper as array with trigger 'Undefined field data' if the key not exists
+         */
+        return isset($cache['data']) ? json_decode($cache['data'], true) : [$sku => []];
     }
 
     function setFactoryStats($sku, $size, $quantity, $factory, $serial, $type, &$data)
