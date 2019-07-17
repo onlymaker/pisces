@@ -54,9 +54,10 @@ class StockUp
         $sheet->setCellValue('B' . $row, 'order');
         $sheet->setCellValue('C' . $row, 'latest');
         $sheet->setCellValue('D' . $row, 'inventory');
-        $sheet->setCellValue('E' . $row, 'inbound');
-        $sheet->setCellValue('F' . $row, 'factory');
-        $sheet->setCellValue('G' . $row, 'requirement');
+        $sheet->setCellValue('E' . $row, 'arrival');
+        $sheet->setCellValue('F' . $row, 'shipped');
+        $sheet->setCellValue('G' . $row, 'factory');
+        $sheet->setCellValue('H' . $row, 'requirement');
         $row++;
 
         foreach ($data as $item) {
@@ -83,14 +84,21 @@ class StockUp
                         // latest
                         $sheet->setCellValue('C' . $row, $sizeStats['latest']);
                         // inventory
-                        $sheet->setCellValue('D' . $row, $content = $sizeStats['inventory']);
-                        // inbound
+                        $sheet->setCellValue('D' . $row, $sizeStats['inventory']);
+                        // inbound: arrival
                         $content = '';
-                        foreach ($sizeStats['inbound'] as $inbound) {
-                            $content .= "{$inbound['quantity']} ({$inbound['name']})\n";
+                        foreach ($sizeStats['arrival'] as $arrival) {
+                            $content .= "{$arrival['quantity']} ({$arrival['name']})\n";
                         }
                         $sheet->setCellValue('E' . $row, $content);
                         $sheet->getCell('E' . $row)->getStyle()->getAlignment()->setWrapText(true);
+                        // inbound: shipped
+                        $content = '';
+                        foreach ($sizeStats['shipped'] as $shipped) {
+                            $content .= "{$shipped['quantity']} ({$shipped['name']})\n";
+                        }
+                        $sheet->setCellValue('F' . $row, $content);
+                        $sheet->getCell('F' . $row)->getStyle()->getAlignment()->setWrapText(true);
                         // factory
                         $content = '';
                         foreach ($sizeStats['factory'] as $factory) {
@@ -125,7 +133,7 @@ class StockUp
         $prototype->load(['model=?', $sku]);
         if (!$prototype->dry()) {
             $data = $this->getAmazonStats($sku);
-            $data['image'] = explode(',', $prototype['images'])[0] . '?imageView2/0/w/50';
+            $data['image'] = $prototype['thumb'];
             $sql = <<<SQL
 select volume_serial, volume_type,
   us_size, us_quantity,
@@ -145,7 +153,7 @@ SQL;
                 if ($item['us_quantity'] > 0) {
                     $this->setFactoryStats($sku, $item['us_size'], $item['us_quantity'], $factory, $serial, $type, $data);
                 }
-                if ($item['uk_quantity'] > 0) {
+                if ($item['de_quantity'] > 0) {
                     $this->setFactoryStats($sku, $item['eu_size'], $item['de_quantity'], $factory, $serial, $type, $data);
                 }
                 if ($item['uk_quantity'] > 0) {
@@ -224,7 +232,8 @@ SQL;
                 $data[$sku][$prefix][$size] = [
                     'order' => ['name' => 'average', 'quantity' => 0],
                     'inventory' => 0,
-                    'inbound' => [],
+                    'arrival' => [],
+                    'shipped' => [],
                     'factory' => [$value],
                 ];
             }
