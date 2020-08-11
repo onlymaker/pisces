@@ -54,6 +54,18 @@ Rabbit::consume(function (AMQPMessage $message) {
             $file = ROOT . '/runtime/jig/report-' . date('Ymd');
             @unlink($file);
             writeLog("clear report cache $file");
+        } else if ($data['task'] == 'testConnection') {
+            $smtp = new \SMTP(
+                'smtp.exmail.qq.com',
+                465,
+                'ssl',
+                'service@onlymaker.com',
+                \Base::instance()->get('EMAIL.SECRET')
+            );
+            $smtp->set('From', 'service@onlymaker.com');
+            $smtp->set('To', '<jibo@onlymaker.com>');
+            $smtp->set('Subject', 'Rabbit mq CN');
+            writeLog('Send out result: ' . $smtp->send('Connection is OK.'));
         }
     }
     $deliveryInfo['channel']->basic_ack($deliveryTag);
