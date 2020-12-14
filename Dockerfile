@@ -7,3 +7,5 @@ COPY . ./
 ENTRYPOINT ["docker-php-entrypoint"]
 
 CMD ["php", "index.php"]
+
+VOLUME ["/data/images/"]

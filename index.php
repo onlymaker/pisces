@@ -2,6 +2,7 @@
 
 use app\Rabbit;
 use PhpAmqpLib\Message\AMQPMessage;
+use service\SkuImage;
 use service\StockUp;
 
 define('ROOT', __DIR__);
@@ -54,6 +55,9 @@ Rabbit::consume(function (AMQPMessage $message) {
             $file = ROOT . '/runtime/jig/report-' . date('Ymd');
             @unlink($file);
             writeLog("clear report cache $file");
+        } else if ($data['task'] == 'image') {
+            $handler = new SkuImage();
+            $handler->exec($data['name'], explode(',', $data['data']));
         } else if ($data['task'] == 'testConnection') {
             $smtp = new \SMTP(
                 'smtp.exmail.qq.com',
