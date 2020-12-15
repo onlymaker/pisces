@@ -22,7 +22,10 @@ class Rabbit
                 $f3->get('RMQ_HOST'),
                 $f3->get('RMQ_PORT'),
                 $f3->get('RMQ_USER'),
-                $f3->get('RMQ_PASS')
+                $f3->get('RMQ_PASS'),
+                '/', false, 'AMQPLAIN', null, 'en_US', 3, 3, null,
+                true,
+                500
             );
         }
         return self::$connection;
