@@ -47,5 +47,6 @@ class SkuImage
         $writer = IOFactory::createWriter($excel, 'Xlsx');
         $writer->save($name);
         chown($name, 'www-data');
+        writeLog("Finish sku image task: $name");
     }
 }
