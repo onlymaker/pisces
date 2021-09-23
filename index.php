@@ -4,6 +4,7 @@ use app\Rabbit;
 use PhpAmqpLib\Message\AMQPMessage;
 use service\SkuImage;
 use service\StockUp;
+use service\Zalando;
 
 define('ROOT', __DIR__);
 
@@ -58,6 +59,9 @@ Rabbit::consume(function (AMQPMessage $message) {
         } else if ($data['task'] == 'image') {
             $handler = new SkuImage();
             $handler->exec($data['name'], explode(',', $data['data']));
+        } else if ($data['task'] == 'zalando-france-receipt') {
+            $handler = new Zalando();
+            $handler->franceReceipt($data['name'], $data['data']);
         } else if ($data['task'] == 'testConnection') {
             $smtp = new \SMTP(
                 'smtp.exmail.qq.com',
