@@ -1,6 +1,6 @@
 {
     "name": "onlymaker/pisces",
-    "version": "201214",
+    "version": "210923",
     "authors": [
         {
             "name": "jibo",
@@ -10,22 +10,27 @@
     "license": "Unlicense",
     "require": {
         "ext-json": "^1.5",
-        "bcosca/fatfree": "dev-3.6.5-syncxplus",
+        "bcosca/fatfree": "dev-3.7.2-syncxplus",
+        "nuovo/spreadsheet-reader": "dev-master",
         "php-amqplib/php-amqplib": "^2.8",
-        "phpoffice/phpspreadsheet": "^1.5"
+        "phpoffice/phpspreadsheet": "^1.5",
+        "phpoffice/phpword": "v0.18.*"
     },
     "require-dev": {
-        "ramsey/uuid": "^3.8",
         "phpunit/phpunit": "^7.0"
     },
-    "repositories": {
-        "0": {
+    "repositories": [
+        {
             "type": "vcs",
             "url": "https://github.com/syncxplus/fatfree"
         },
-        "packagist": {
+        {
+            "type": "vcs",
+            "url": "https://github.com/syncxplus/spreadsheet-reader"
+        },
+        {
             "type": "composer",
             "url": "https://packagist.phpcomposer.com"
         }
-    }
+    ]
 }
