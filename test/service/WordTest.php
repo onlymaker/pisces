@@ -2,6 +2,7 @@
 
 namespace test\service;
 
+use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\Settings;
 use PhpOffice\PhpWord\TemplateProcessor;
 use PHPUnit\Framework\TestCase;
@@ -11,8 +12,10 @@ class WordTest extends TestCase
     function testTemplate()
     {
         writeLog('test template');
+
         $data = [];
         $headers = [];
+
         $reader = new \SpreadsheetReader(ROOT . '/resources/template.xlsx');
         $reader->ChangeSheet(0);
         while ($reader->valid()) {
@@ -44,7 +47,12 @@ class WordTest extends TestCase
         unset($headers['unit_price']);
         unset($headers['line_price']);
 
+        Settings::loadConfig();
         Settings::setCompatibility(false);
+        Settings::setPdfRendererName(Settings::PDF_RENDERER_DOMPDF);
+        Settings::setPdfRendererPath(ROOT . '/vendor/dompdf/dompdf/');
+        //Settings::setPdfRendererName(Settings::PDF_RENDERER_TCPDF);
+        //Settings::setPdfRendererPath(ROOT . '/vendor/tecnickcom/tcpdf/');
         foreach ($data as $k => $v) {
             $template = new TemplateProcessor(ROOT . '/resources/template.docx');
             $template->cloneRowAndSetValues('product_sku', $v['table']);
@@ -55,6 +63,9 @@ class WordTest extends TestCase
             $result = '/tmp/' . $k . '_invoice.docx';
             writeLog('Saving ' . $result);
             $template->saveAs($result);
+
+            $docx = IOFactory::load($result);
+            $docx->save('/tmp/' . $k . '_invoice.pdf', 'PDF');
         }
 
         $this->assertTrue(true);
