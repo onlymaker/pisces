@@ -9,7 +9,7 @@
     ],
     "license": "Unlicense",
     "require": {
-        "ext-json": "^1.5",
+        "ext-json": "*",
         "bcosca/fatfree": "dev-3.7.2-syncxplus",
         "dompdf/dompdf": "^1.0",
         "nuovo/spreadsheet-reader": "dev-master",

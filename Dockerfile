@@ -1,4 +1,4 @@
-FROM syncxplus/php:7.3.29-cli-buster
+FROM syncxplus/php:7.4.28-cli-buster
 
 WORKDIR /data/
 
