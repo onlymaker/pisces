@@ -21,19 +21,21 @@ class Track
         $sheet = $excel->getSheet(0);
         $mapper = new SqlMapper('order_item');
         foreach ($data as $i => $line) {
-            writeLog("Trace id: $line");
+            writeLog("Track: $i $line");
             $row = $i + 1;
             $sheet->setCellValue('A' . $row, $line);
             $mapper->load(['trace_id=?', $line]);
             if ($mapper->dry()) {
-                $sheet->fromArray([[$line]], "A$row");
+                $sheet->fromArray([[$line]], '', "A$row");
+                writeLog("$line is dry");
             } else {
                 $sheet->fromArray([[
                     $line,
                     $mapper['channel'],
                     $mapper['sku'],
                     $mapper['size'],
-                ]], "A$row");
+                ]], '', "A$row");
+                writeLog("$line is {$mapper['channel']}");
             }
         }
         $writer = IOFactory::createWriter($excel, 'Xlsx');
